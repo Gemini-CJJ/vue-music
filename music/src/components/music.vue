@@ -59,295 +59,348 @@
 </template>
 
 <script>
-  import axios from 'axios'
-  // import { mapState } from 'vuex'
-  // import { mapMutations } from 'vuex'
+import axios from 'axios'
+// import { mapState } from 'vuex'
+// import { mapMutations } from 'vuex'
 
-  export default {
-    name: 'music',
-    data() {
-      return {
-        status:'pause',
-        audio:'',
-        index:0,   //当前对应索引
-        curIndex:'',//改变后的索引
-        len:0,//数据长度
-        url:'',
-        timer:null,
-        drag: false,
-        flag:true,
-        songList:[],
-        musicList:'',
-        currentTemp:'',
-        totalTemp:'',
-        totalTime:'00:00',
-        currentTime:'00:00',
-        per:0,
-        volPer:0.6//音量大小
+export default {
+  name: 'music',
+  data () {
+    return {
+      status: 'pause',
+      audio: '',
+      index: 0, // 当前对应索引
+      curIndex: '', // 改变后的索引
+      len: 0, // 数据长度
+      url: '',
+      timer: null,
+      drag: false,
+      flag: true,
+      songList: [],
+      musicList: '',
+      currentTemp: '',
+      totalTemp: '',
+      totalTime: '00:00',
+      currentTime: '00:00',
+      per: 0,
+      volPer: 0.6// 音量大小
+    }
+  },
+  computed: {
+    // totalTime () {
+    //   return this.formatTime
+    // }
+  },
+  async mounted () {
+    await this.init()
+    this.audio = this.$refs.player
+    this.getIndex(0)
+    this.$refs.volProgress.style.height = this.volPer * 100 + '%'
+    this.$refs.volSlider.style.top = this.volPer * 100 + 'px' // 进度条的长度为100px
+    this.timer = setInterval(() => {
+      // 当鼠标拖动时 停止给currentTime赋值
+      if (!this.drag) {
+        this.currentTemp = this.audio.currentTime
+        this.currentTime = this.formatTime(this.currentTemp)
+        this.per = this.currentTemp / this.totalTemp
+        this.$refs.proTop.style.width = this.per * 100 + '%'
+        this.$refs.slider.style.left = this.per * 500 + 'px' // 进度条的长度为500px
+        this.audio.currentTime = this.currentTemp
+      }
+      if (this.audio.ended) {
+        console.log('ended')
+        this.next()
+      }
+    }, 1000)
+  },
+  // 页面销毁清除定时器
+  beforeDestroy () {
+    clearInterval(this.timer)
+    this.timer = null
+  },
+
+  methods: {
+    // 获取数据初始化设置
+    async init () {
+      const getMusicList = url => axios.get(url)
+      let url = 'https://www.easy-mock.com/mock/5caacd926a48d31d50b36e5c/music/musicData'
+      let res = await getMusicList(url)
+      if (res && res.data.data.code == 0) {
+        this.musicList = res.data.data.musicList
+        this.len = this.musicList.length
+        this.musicList.forEach(ele => {
+          let obj = {
+            title: ele.songname,
+            // pic:ele.musicImgSrc,
+            url: ele.url,
+            author: ele.singername
+          }
+          this.songList.push(obj)
+        })
+        // 因为是异步请求，所以一开始播放器中是没有歌曲的，所有给了个v-if不然会插件默认会先生成播放器，导致报错
+        this.flag = true
+      };
+    },
+    play () {
+      if (this.status == 'pause') {
+        this.status = 'play'
+      } else {
+        this.status = 'pause'
       }
     },
-
-    async mounted () {
-      await this.init()
-      this.audio = this.$refs.player
-      clearInterval(this.timer);
-      this.timer = setInterval(() => {
-        //当鼠标拖动时 停止给currentTime赋值
-        if(!this.drag) {
-          this.currentTemp = this.audio.currentTime
-          this.currentTime = this.formatTime(this.currentTemp)
-          this.per = this.currentTemp / this.totalTemp
-          this.$refs.proTop.style.width = this.per * 100 + '%'
-          this.$refs.slider.style.left = this.per * 500 + 'px' //进度条的长度为500px
-          this.audio.currentTime = this.currentTemp
-        }
-        if (this.audio.ended) {
-          console.log("ended")
-          this.next()
-        }
-      },1000)
+    prev () {
+      this.getIndex(-1)
+      this.url = this.songList[this.index].url
+      this.currentTemp = 0
+      this.currentTime = this.formatTime(this.currentTime)
     },
-    //页面销毁清除定时器
-    beforeDestroy() {
-      clearInterval(this.timer);
-      this.timer = null;
+    next () {
+      this.getIndex(1)
+      this.url = this.songList[this.index].url
+      this.currentTemp = 0
+      this.currentTime = this.formatTime(this.currentTime)
     },
-
-    methods: {
-      //获取数据初始化设置
-      async init() {
-        const getMusicList = url => axios.get(url)
-        let url = 'https://www.easy-mock.com/mock/5caacd926a48d31d50b36e5c/music/musicData';
-        let res = await getMusicList(url)
-        if(res && res.data.data.code == 0){
-          this.musicList = res.data.data.musicList;
-          this.len = this.musicList.length
-          this.musicList.forEach(ele => {
-            let obj = {
-              title:ele.songname,
-              // pic:element.musicImgSrc,
-              url:ele.url,
-              author:ele.singername,
-            }
-            this.songList.push(obj);
-          });
-          //因为是异步请求，所以一开始播放器中是没有歌曲的，所有给了个v-if不然会插件默认会先生成播放器，导致报错
-          this.flag = true;
-        };
-      },
-      play(){
-        if(this.status == 'pause') {
-            this.status = 'play'
-        }else{
-            this.status = 'pause'
+    // 单曲播放
+    single () {
+      this.getIndex(0)
+      this.currentTemp = 0
+      this.currentTime = this.formatTime(this.currentTime)
+      this.url = this.songList[this.index].url
+    },
+    // 随机播放
+    random () {
+      let num = Math.random()
+      num = Math.floor(num * this.len)
+      this.currentTemp = 0
+      this.currentTime = this.formatTime(this.currentTime)
+      this.getIndex(num)
+      this.url = this.songList[this.index].url
+    },
+    // 控制index变化
+    getIndex (val) {
+      this.curIndex = (this.index + this.len + val) % (this.len)
+      this.index = this.curIndex
+    },
+    // 时间转换格式
+    formatTime (t) {
+      t = Math.round(t)
+      var m = Math.floor(t / 60)
+      var s = t - m * 60
+      if (m < 10) {
+        m = '0' + m
+      }
+      if (s < 10) {
+        s = '0' + s
+      }
+      return m + ':' + s
+    },
+    // 进度条 防止click 与 onmouse 事件冲突
+    isClick () {
+      let firstTime = new Date().getTime()
+      document.onmouseup = () => {
+        let lastTime = new Date().getTime()
+        let time = lastTime - firstTime
+        if (time < 200) {
+          this.skip()
         }
-      },
-      prev () {
-        this.getIndex(-1)
-        this.url = this.songList[this.index].url
-      },
-      next () {
-        this.getIndex(1)
-        this.url = this.songList[this.index].url
-      },
-      //单曲播放
-      single() {
-        this.getIndex(0)
-        this.url = this.songList[this.index].url
-      },
-      //随机播放
-      random() {
-        let num = Math.random()
-        num = Math.floor(num * this.len)
-        this.getIndex(num)
-        this.url = this.songList[this.index].url
-      },
-      //控制index变化
-      getIndex (val) {
-        this.curIndex =(this.index + this.len + val) % (this.len)
-        this.index = this.curIndex
-      },
-      //时间转换格式
-      formatTime (t) {
-        t = Math.round(t);
-        var m = Math.floor(t / 60);
-        var s = t - m * 60;
-        if( m < 10) {
-          m = '0' + m;
+      }
+    },
+    // 音量 防止click 与 onmouse 事件冲突
+    isVolClick () {
+      let firstTime = new Date().getTime()
+      document.onmouseup = () => {
+        let lastTime = new Date().getTime()
+        let time = lastTime - firstTime
+        if (time < 200) {
+          this.volSkip()
         }
-        if( s < 10) {
-          s = '0' + s;
+      }
+    },
+    // 进度条滑动
+    slider (e) {
+      e = e || window.event
+      e.stopPropagation()
+      e.preventDefault()
+      this.drag = true
+      let newPer
+      let slider = this.$refs.slider
+      let disX = e.clientX - slider.offsetLeft
+      let _this = this
+      document.onmousemove = (e) => {
+        let left = e.clientX - disX
+        newPer = left / 500
+        if (newPer < 0) {
+          newPer = 0
         }
-        return m + ':' + s
-      },
-      //进度条 防止click 与 onmouse 事件冲突
-      isClick(){
-        let firstTime = new Date().getTime()
-        document.onmouseup =  () => {
-          let lastTime = new Date().getTime()
-          let time = lastTime - firstTime
-          if (time < 200) {
-            this.skip()
-          }
+        if (newPer > 1) {
+          newPer = 1
         }
-      },
-      // 音量 防止click 与 onmouse 事件冲突
-      isVolClick() {
-        let firstTime = new Date().getTime()
-        document.onmouseup =  () => {
-          let lastTime = new Date().getTime()
-          let time = lastTime - firstTime
-          if (time < 200) {
-            this.volSkip()
-          }
-        }
-      },
-      // 进度条滑动
-      slider (e) {
-        e = e || window.event
-        e.stopPropagation()
-        e.preventDefault()
-        this.drag = true
-        let newPer
-        let slider = this.$refs.slider
-        let disX = e.clientX - slider.offsetLeft
-        let _this = this
-        document.onmousemove = (e) => {
-          let left = e.clientX - disX
-          newPer = left / 500
-          if(newPer < 0){
-            newPer = 0
-          }
-          if (newPer > 1) {
-            newPer = 1
-          }
-          this.per = newPer
-          this.$refs.proTop.style.width = newPer * 100 + '%'
-          this.$refs.slider.style.left = newPer * 500 + 'px' //进度条的长度为500px
-          this.currentTemp = this.per * this.totalTemp
-          this.currentTime = this.formatTime(this.currentTemp)
-        }
-        document.onmouseup = (e) => {
-          this.drag = false
-          _this.audio.currentTime = this.currentTemp
+        this.per = newPer
+        this.$refs.proTop.style.width = newPer * 100 + '%'
+        this.$refs.slider.style.left = newPer * 500 + 'px' // 进度条的长度为500px
+        this.currentTemp = this.per * this.totalTemp
+        this.currentTime = this.formatTime(this.currentTemp)
+      }
+      document.onmouseup = (e) => {
+        this.drag = false
+        _this.audio.currentTime = this.currentTemp
+        console.log('----' + this.per)
+        if (this.status == 'play') {
           _this.audio.play()
-          if (this.per) {
-            console.log("ended")
+          if (newPer == 1) {
+            console.log('ended')
             this.next()
           }
-          document.onmousemove = null;
-          document.onmouseup = null;
         }
-      },
-      // 进度条点击
-      skip(e) {
-        e = e || window.event
-        e.stopPropagation()
-        e.preventDefault()
-        let timeWrapper = this.$refs.timeWrapper
-        let location = e .layerX
-        let width = timeWrapper.clientWidth
-        this.per = location / width
-        this.audio.currentTime= this.per * this.totalTemp
-        this.$refs.proTop.style.width = this.per * 100 + '%'
-        this.$refs.slider.style.left = this.per * 500 + 'px'
-      },
-      // 音量滑动
-      volSlider (e) {
-        e = e || window.event
-        e.stopPropagation()
-        e.preventDefault()
-        let volPer
-        let slider = this.$refs.volSlider
-        let disY = e.clientY + slider.offsetTop  //因为方向改变 加号
-        document.onmousemove = (e) => {
-          let top = - (e.clientY - disY) // 因为方向改变 负号
-          volPer = (top / 100)
-          if(volPer < 0){
-            volPer = 0
-          }
-          if (volPer > 1) {
-            volPer = 1
-          }
-          this.volPer = volPer
-          this.audio.volume = volPer
-          this.$refs.volProgress.style.height = volPer * 100 + '%'
-          this.$refs.volSlider.style.top =  +volPer * 100 + 'px' //进度条的长度为100px
-        }
-        document.onmouseup = (e) => {
-          document.onmousemove = null;
-          document.onmouseup = null;
-        }
-
-      },
-      //音量点击
-      volSkip (e) {
-        e = e || window.event
-        e.stopPropagation()
-        e.preventDefault()
-        let volumeWrapper = this.$refs.volumeWrapper
-        let location = 100 - e .layerY
-        console.log(location)
-        let height = volumeWrapper.clientHeight
-        console.log(height)
-        this.volPer = location / height
-        this.audio.volume= this.volPer
-        this.$refs.volProgress.style.height = this.volPer * 100 + '%'
-        this.$refs.volSlider.style.top = this.volPer * 100 + 'px'
+        document.onmousemove = null
+        document.onmouseup = null
       }
     },
-
-    watch:{
-      // 监听音乐文件的变化
-      url (newUrl){
-        let _this = this
-        _this.$nextTick(() => {
-          _this.totalTemp = 0
-          if (_this.status == "pause") {
-            _this.audio.src = newUrl
-            _this.$refs.player.pause()
-          } else {
-            _this.totalTemp = 0
-            _this.audio.src = newUrl
-            _this.totalTemp = _this.audio.duration
-            _this.totalTime = _this.formatTime(_this.totalTemp)
-            _this.audio.play()
-          }
-        })
-      },
-      //监听状态的改变
-      status () {
-        let _this = this
-        _this.$nextTick(() => {
-          if (_this.status == "play") {
-            console.log("开始")
-            // 同一首歌暂停后播放
-            if(_this.currentTemp) {
-              _this.audio.currentTime = _this.currentTemp
-              _this.audio.play()
-            }else{
-              //歌曲切换后播放
-              _this.audio.src = _this.songList[_this.index].url
-              // 元数据加载完毕
-              _this.audio.onloadedmetadata = () => {
-                //获取歌曲总时间
-                _this.totalTemp = _this.audio.duration
-                _this.totalTime = _this.formatTime(_this.totalTemp)
-               _this.audio.volume = this.volPer
-              }
-              this.$refs.volProgress.style.height = this.volPer * 100 + '%'
-              this.$refs.volSlider.style.top =  this.volPer * 100 + 'px' //进度条的长度为100px
-              _this.audio.play()
-            }
-          }
-          if (_this.status == "pause") {
-            console.log("暂停")
-            _this.audio.pause()
-          }
-        })
-      },
+    // 进度条点击
+    skip (e) {
+      e = e || window.event
+      e.stopPropagation()
+      e.preventDefault()
+      let timeWrapper = this.$refs.timeWrapper
+      let location = e.layerX
+      let width = timeWrapper.clientWidth
+      this.per = location / width
+      this.audio.currentTime = this.per * this.totalTemp
+      this.$refs.proTop.style.width = this.per * 100 + '%'
+      this.$refs.slider.style.left = this.per * 500 + 'px'
+    },
+    // 音量滑动
+    volSlider (e) {
+      e = e || window.event
+      e.stopPropagation()
+      e.preventDefault()
+      let volPer
+      let slider = this.$refs.volSlider
+      let disY = e.clientY + slider.offsetTop // 因为方向改变 加号
+      document.onmousemove = (e) => {
+        let top = -(e.clientY - disY) // 因为方向改变 负号
+        volPer = (top / 100)
+        if (volPer < 0) {
+          volPer = 0
+        }
+        if (volPer > 1) {
+          volPer = 1
+        }
+        this.volPer = volPer
+        this.audio.volume = volPer
+        this.$refs.volProgress.style.height = volPer * 100 + '%'
+        this.$refs.volSlider.style.top = volPer * 100 + 'px' // 进度条的长度为100px
+      }
+      document.onmouseup = (e) => {
+        document.onmousemove = null
+        document.onmouseup = null
+      }
+    },
+    // 音量点击
+    volSkip (e) {
+      e = e || window.event
+      e.stopPropagation()
+      e.preventDefault()
+      let volumeWrapper = this.$refs.volumeWrapper
+      let location = 100 - e.layerY
+      let height = volumeWrapper.clientHeight
+      this.volPer = location / height
+      this.audio.volume = this.volPer
+      this.$refs.volProgress.style.height = this.volPer * 100 + '%'
+      this.$refs.volSlider.style.top = this.volPer * 100 + 'px'
     }
+  },
+
+  watch: {
+    // 监听当前索引值的变化
+    curIndex (newVal) {
+      this.$nextTick(() => {
+        // 页面信息渲染 图片 文字
+        this.totalTime = '00:00'
+        this.currentTime = '00:00'
+        // 播放状态才获取资源  暂停状态下获取资源拖动为条件
+        if (this.status == 'play') {
+          this.audio.src = this.songList[newVal].url
+          // 元数据加载完毕
+          this.audio.onloadedmetadata = () => {
+            this.totalTemp = this.audio.duration
+            this.totalTime = this.formatTime(this.totalTemp)
+          }
+          // 歌曲准备就绪 缺少判断
+          this.audio.play()
+        }
+      })
+    },
+
+    status (newVal) {
+      this.$nextTick(() => {
+        // 从暂停到播放
+        if (newVal == 'play') {
+          // 当前歌曲播放过程中暂停后播放
+          if (this.currentTemp) {
+            this.audio.currentTime = this.currentTemp
+            this.audio.play()
+          } else {
+            // 切换下一首歌
+            this.audio.src = this.songList[this.curIndex].url
+            // 元数据加载完毕
+            this.audio.onloadedmetadata = () => {
+              this.totalTemp = this.audio.duration
+              this.totalTime = this.formatTime(this.totalTemp)
+            }
+            this.audio.play()
+          }
+        }
+        if (newVal == 'pause') {
+          this.audio.pause()
+        }
+      })
+    },
+
+    currentTemp () {
+      // 未播放暂停状态下
+      console.log('in')
+      if (!this.currentTemp && this.status != 'play') {
+        this.audio.src = this.songList[this.curIndex].url
+        // 元数据加载完毕
+        this.audio.onloadedmetadata = () => {
+          this.totalTemp = this.audio.duration
+          this.totalTime = this.formatTime(this.totalTemp)
+        }
+      }
+    }
+    // 监听状态的改变
+    // status () {
+    //   let _this = this
+    //   _this.$nextTick(() => {
+    //     if (_this.status == "play") {
+    //       console.log("开始")
+    //       // 同一首歌暂停后播放
+    //       if(_this.currentTemp) {
+    //         _this.audio.currentTime = _this.currentTemp
+    //         _this.audio.play()
+    //       }else{
+    //         //歌曲切换后播放
+    //         // _this.audio.src = _this.songList[_this.index].url
+    //         // 元数据加载完毕  curIndex里处理了
+    //
+    //           //获取歌曲总时间
+    //           // _this.totalTemp = _this.audio.duration
+    //           // _this.totalTime = _this.formatTime(_this.totalTemp)
+    //          _this.audio.volume = this.volPer
+    //         this.$refs.volProgress.style.height = this.volPer * 100 + '%'
+    //         this.$refs.volSlider.style.top =  this.volPer * 100 + 'px' //进度条的长度为100px
+    //         _this.audio.play()
+    //       }
+    //     }
+    //     if (_this.status == "pause") {
+    //       console.log("暂停")
+    //       _this.audio.pause()
+    //     }
+    //   })
+    // },
   }
+}
 </script>
 
 <style scoped>
@@ -520,9 +573,10 @@
   .volume{
     display: flex;
     position: absolute;
-    top: -113px;
+    top: -121px;
     left: 13px;
     height: 110px;
+    padding-bottom: 10px;
     border: 1px solid black;
     transform: rotateZ(-180deg);
     background: #000000;
@@ -559,6 +613,17 @@
     border-radius: 50%;
     background-color: #ffffff;
   }
-
+  .volSlider-point::after{
+    content: '';
+    display: block;
+    background: red;
+    border-radius: 50%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%,-50%);
+    width: 5px;
+    height: 5px;
+  }
 
 </style>
