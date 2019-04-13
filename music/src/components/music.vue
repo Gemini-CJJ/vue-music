@@ -73,6 +73,8 @@ export default {
       curIndex: '', // 改变后的索引
       len: 0, // 数据长度
       url: '',
+      title: '',
+      author: '',
       timer: null,
       drag: false,
       flag: true,
@@ -125,7 +127,7 @@ export default {
       const getMusicList = url => axios.get(url)
       let url = 'https://www.easy-mock.com/mock/5caacd926a48d31d50b36e5c/music/musicData'
       let res = await getMusicList(url)
-      if (res && res.data.data.code == 0) {
+      if (res && res.data.data.code === 0) {
         this.musicList = res.data.data.musicList
         this.len = this.musicList.length
         this.musicList.forEach(ele => {
@@ -141,8 +143,15 @@ export default {
         this.flag = true
       };
     },
+    detailData () {
+      this.title = this.songList[this.index].title
+      this.author = this.songList[this.index].author
+      this.url = this.songList[this.index].url
+      this.currentTemp = 0
+      this.currentTime = this.formatTime(this.currentTime)
+    },
     play () {
-      if (this.status == 'pause') {
+      if (this.status === 'pause') {
         this.status = 'play'
       } else {
         this.status = 'pause'
@@ -150,31 +159,23 @@ export default {
     },
     prev () {
       this.getIndex(-1)
-      this.url = this.songList[this.index].url
-      this.currentTemp = 0
-      this.currentTime = this.formatTime(this.currentTime)
+      this.detailData()
     },
     next () {
       this.getIndex(1)
-      this.url = this.songList[this.index].url
-      this.currentTemp = 0
-      this.currentTime = this.formatTime(this.currentTime)
+      this.detailData()
     },
     // 单曲播放
     single () {
       this.getIndex(0)
-      this.currentTemp = 0
-      this.currentTime = this.formatTime(this.currentTime)
-      this.url = this.songList[this.index].url
+      this.detailData()
     },
     // 随机播放
     random () {
       let num = Math.random()
       num = Math.floor(num * this.len)
-      this.currentTemp = 0
-      this.currentTime = this.formatTime(this.currentTime)
       this.getIndex(num)
-      this.url = this.songList[this.index].url
+      this.detailData()
     },
     // 控制index变化
     getIndex (val) {
@@ -245,9 +246,9 @@ export default {
         this.drag = false
         _this.audio.currentTime = this.currentTemp
         console.log('----' + this.per)
-        if (this.status == 'play') {
+        if (this.status === 'play') {
           _this.audio.play()
-          if (newPer == 1) {
+          if (newPer === 1) {
             console.log('ended')
             this.next()
           }
