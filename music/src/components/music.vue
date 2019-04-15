@@ -1,5 +1,8 @@
 <template>
   <div class="wrapper">
+    <div class="songList">
+      <div></div>
+    </div>
     <div class="wrap">
       <div class="player-wrap">
         <video muted="false" hidden="hidden">
@@ -26,8 +29,8 @@
         <!--进度条-->
         <div class="pro">
           <div class="song-info">
-            <span class="singer-name">Gemin</span>
-            <span class="album-name">听说</span>
+            <span class="singer-name">{{title}}</span>
+            <span class="album-name">{{author}}</span>
           </div>
           <div class="time">
             <div class="time-wrapper" @mousedown="isClick" ref="timeWrapper">
@@ -41,7 +44,7 @@
         </div>
         <!--功能按键-->
         <div class="func">
-          <div class="volume">
+          <div class="volume" :class="{sound: volSound}">
             <div class="volume-wrapper" @mousedown="isVolClick" ref="volumeWrapper">
               <div class="volProgressBar"></div>
               <div class="volProgress" ref="volProgress">
@@ -49,7 +52,7 @@
               </div>
             </div>
           </div>
-          <div class="icon">+</div>
+          <div class="icon" @click="soundSwitch">+</div>
           <div class="icon">-</div>
           <div class="icon">%</div>
         </div>
@@ -85,7 +88,8 @@ export default {
       totalTime: '00:00',
       currentTime: '00:00',
       per: 0,
-      volPer: 0.6// 音量大小
+      volPer: 0.6, // 音量大小
+      volSound: false
     }
   },
   computed: {
@@ -143,6 +147,7 @@ export default {
         this.flag = true
       };
     },
+    // 获取图文信息
     detailData () {
       this.title = this.songList[this.index].title
       this.author = this.songList[this.index].author
@@ -159,23 +164,22 @@ export default {
     },
     prev () {
       this.getIndex(-1)
-      this.detailData()
     },
     next () {
       this.getIndex(1)
-      this.detailData()
+      // if (!this.currentTemp && this.status === 'pause') {
+      //   this.
+      // }
     },
     // 单曲播放
     single () {
       this.getIndex(0)
-      this.detailData()
     },
     // 随机播放
     random () {
       let num = Math.random()
       num = Math.floor(num * this.len)
       this.getIndex(num)
-      this.detailData()
     },
     // 控制index变化
     getIndex (val) {
@@ -185,8 +189,8 @@ export default {
     // 时间转换格式
     formatTime (t) {
       t = Math.round(t)
-      var m = Math.floor(t / 60)
-      var s = t - m * 60
+      let m = Math.floor(t / 60)
+      let s = t - m * 60
       if (m < 10) {
         m = '0' + m
       }
@@ -226,7 +230,6 @@ export default {
       let newPer
       let slider = this.$refs.slider
       let disX = e.clientX - slider.offsetLeft
-      let _this = this
       document.onmousemove = (e) => {
         let left = e.clientX - disX
         newPer = left / 500
@@ -244,10 +247,10 @@ export default {
       }
       document.onmouseup = (e) => {
         this.drag = false
-        _this.audio.currentTime = this.currentTemp
+        this.audio.currentTime = this.currentTemp
         console.log('----' + this.per)
         if (this.status === 'play') {
-          _this.audio.play()
+          this.audio.play()
           if (newPer === 1) {
             console.log('ended')
             this.next()
@@ -309,6 +312,9 @@ export default {
       this.audio.volume = this.volPer
       this.$refs.volProgress.style.height = this.volPer * 100 + '%'
       this.$refs.volSlider.style.top = this.volPer * 100 + 'px'
+    },
+    soundSwitch () {
+      this.volSound = !this.volSound
     }
   },
 
@@ -317,10 +323,11 @@ export default {
     curIndex (newVal) {
       this.$nextTick(() => {
         // 页面信息渲染 图片 文字
+        this.detailData()
         this.totalTime = '00:00'
         this.currentTime = '00:00'
         // 播放状态才获取资源  暂停状态下获取资源拖动为条件
-        if (this.status == 'play') {
+        if (this.status === 'play') {
           this.audio.src = this.songList[newVal].url
           // 元数据加载完毕
           this.audio.onloadedmetadata = () => {
@@ -330,13 +337,18 @@ export default {
           // 歌曲准备就绪 缺少判断
           this.audio.play()
         }
+        if (this.status === 'pause') {
+          this.audio.currentTime = 0
+          this.totalTime = '00:00'
+          this.currentTime = '00:00'
+          this.currentTemp = 0
+        }
       })
     },
 
     status (newVal) {
       this.$nextTick(() => {
-        // 从暂停到播放
-        if (newVal == 'play') {
+        if (newVal === 'play') {
           // 当前歌曲播放过程中暂停后播放
           if (this.currentTemp) {
             this.audio.currentTime = this.currentTemp
@@ -352,54 +364,28 @@ export default {
             this.audio.play()
           }
         }
-        if (newVal == 'pause') {
+        if (newVal === 'pause') {
           this.audio.pause()
         }
       })
-    },
-
-    currentTemp () {
-      // 未播放暂停状态下
-      console.log('in')
-      if (!this.currentTemp && this.status != 'play') {
-        this.audio.src = this.songList[this.curIndex].url
-        // 元数据加载完毕
-        this.audio.onloadedmetadata = () => {
-          this.totalTemp = this.audio.duration
-          this.totalTime = this.formatTime(this.totalTemp)
-        }
-      }
     }
-    // 监听状态的改变
-    // status () {
-    //   let _this = this
-    //   _this.$nextTick(() => {
-    //     if (_this.status == "play") {
-    //       console.log("开始")
-    //       // 同一首歌暂停后播放
-    //       if(_this.currentTemp) {
-    //         _this.audio.currentTime = _this.currentTemp
-    //         _this.audio.play()
-    //       }else{
-    //         //歌曲切换后播放
-    //         // _this.audio.src = _this.songList[_this.index].url
-    //         // 元数据加载完毕  curIndex里处理了
-    //
-    //           //获取歌曲总时间
-    //           // _this.totalTemp = _this.audio.duration
-    //           // _this.totalTime = _this.formatTime(_this.totalTemp)
-    //          _this.audio.volume = this.volPer
-    //         this.$refs.volProgress.style.height = this.volPer * 100 + '%'
-    //         this.$refs.volSlider.style.top =  this.volPer * 100 + 'px' //进度条的长度为100px
-    //         _this.audio.play()
-    //       }
+
+    // currentTemp () {
+    //   // 未播放currenTemp没值 暂停状态下
+    //   if (!this.currentTemp && this.status === 'pause') {
+    //     this.audio.src = this.songList[this.curIndex].url
+    //     // 元数据加载完毕
+    //     this.audio.onloadedmetadata = () => {
+    //       this.totalTemp = this.audio.duration
+    //       this.totalTime = this.formatTime(this.totalTemp)
     //     }
-    //     if (_this.status == "pause") {
-    //       console.log("暂停")
-    //       _this.audio.pause()
+    //     if (this.currentTemp && this.status === 'pause') {
+    //       this.totalTime = '00:00'
+    //       this.currentTime = '00:00'
+    //       console.log('000')
     //     }
-    //   })
-    // },
+    //   }
+    // }
   }
 }
 </script>
@@ -451,14 +437,16 @@ export default {
     margin-right: 8px;
     margin-top: 5px;
     border: 2px solid #aaa;
-    background: url("../assets/images/icon-prev.png") no-repeat;
+    background: url("../assets/images/playbar.png") no-repeat;
+    background-size: 100% 100%;
+    background-position: 20px 120px;
   }
   .play-btn{
     width: 32px;
     height: 32px;
     margin-right: 8px;
     border: 2px solid #fff;
-    background: url("../assets/images/icon-play.png") no-repeat;
+    background: url("../assets/images/playbar.png") no-repeat;
   }
   .next-btn{
     background-size: 10%;
@@ -467,10 +455,10 @@ export default {
     margin-right: 8px;
     margin-top: 5px;
     border: 2px solid #aaa;
-    background: url("../assets/images/icon-next.png") no-repeat;
+    background: url("../assets/images/playbar.png") no-repeat;
   }
   .playing{
-    background: url("../assets/images/icon-pause.png") no-repeat;
+    background: url("../assets/images/playbar.png") no-repeat;
   }
 /*  !*图片展示*!*/
   .song-img{
@@ -572,6 +560,7 @@ export default {
     border: 1px solid black;
   }
   .volume{
+    visibility: hidden;
     display: flex;
     position: absolute;
     top: -121px;
@@ -581,7 +570,6 @@ export default {
     border: 1px solid black;
     transform: rotateZ(-180deg);
     background: #000000;
-
   }
   .volume-wrapper{
     height: 100px;
@@ -626,5 +614,7 @@ export default {
     width: 5px;
     height: 5px;
   }
-
+  .sound{
+    visibility: visible;
+  }
 </style>
