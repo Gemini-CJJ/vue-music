@@ -1,63 +1,70 @@
 <template>
   <div class="wrapper">
     <div class="songList">
-      <div></div>
-    </div>
-    <div class="wrap">
-      <div class="player-wrap">
-        <video muted="false" hidden="hidden">
-          <audio v-if="flag"
-                 ref="player"
-                 src=""></audio>
-        </video>
-        <!--播放控件-->
-        <div class="btns">
-          <!-- <div class="btn-wrapper like-btn"></div>-->
-          <div class="btn-wrapper prev-btn" @click="prev"></div>
-          <div class="btn-wrapper play-btn" @click="play"></div>
-          <div class="btn-wrapper next-btn" @click="next"></div>
-          <!--      <div class="btn-wrapper list-btn"></div>-->
-        </div>
-        <!--音乐海报-->
-        <div class="song-img">
-          <div class="">
-            <div class="img-wrapper">
-              <img src="" alt="">
-            </div>
-          </div>
-        </div>
-        <!--进度条-->
-        <div class="pro">
-          <div class="song-info">
-            <span class="singer-name">{{title}}</span>
-            <span class="album-name">{{author}}</span>
-          </div>
-          <div class="time">
-            <div class="time-wrapper" @mousedown="isClick" ref="timeWrapper">
-              <div class="pro-bottom" ref="proBottom"></div>
-              <div class="pro-top" ref="proTop">
-                <div class="slider-point" @mousedown="slider" ref="slider"></div>
-              </div>
-            </div>
-            <div class="music-time">{{currentTime}}/{{totalTime}}</div>
-          </div>
-        </div>
-        <!--功能按键-->
-        <div class="func">
-          <div class="volume" :class="{sound: volSound}">
-            <div class="volume-wrapper" @mousedown="isVolClick" ref="volumeWrapper">
-              <div class="volProgressBar"></div>
-              <div class="volProgress" ref="volProgress">
-                <div class="volSlider-point" @mousedown="volSlider" ref="volSlider"></div>
-              </div>
-            </div>
-          </div>
-          <div class="icon" @click="soundSwitch">+</div>
-          <div class="icon">-</div>
-          <div class="icon">%</div>
+      <div v-for="(item, index) in songList" :key="index" @click="select(item)">
+        <div>
+          <span>{{item.title}}</span>
+          <span>{{item.author}}</span>
         </div>
       </div>
     </div>
+    <div class="outer">
+      <div class="wrap">
+        <div class="player-wrap">
+          <video muted="false" hidden="hidden">
+            <audio v-if="flag"
+                   ref="player"
+                   src=""></audio>
+          </video>
+          <!--播放控件-->
+          <div class="btns">
+            <div class="btn-wrapper prev-btn" @click="prev"></div>
+            <div class="btn-wrapper play-btn" @click="play"></div>
+            <div class="btn-wrapper next-btn" @click="next"></div>
+          </div>
+          <!--音乐海报-->
+          <div class="song-img">
+            <div class="">
+              <div class="img-wrapper">
+                <img src="" alt="">
+              </div>
+            </div>
+          </div>
+          <!--进度条-->
+          <div class="pro">
+            <div class="song-info">
+              <span class="singer-name">{{title}}</span>
+              <span class="album-name">{{author}}</span>
+            </div>
+            <div class="time">
+              <div class="time-wrapper" @mousedown="isClick" ref="timeWrapper">
+                <div class="pro-bottom" ref="proBottom"></div>
+                <div class="pro-top" ref="proTop">
+                  <div class="slider-point" @mousedown="slider" ref="slider"></div>
+                </div>
+              </div>
+              <div class="music-time">{{currentTime}}/{{totalTime}}</div>
+            </div>
+          </div>
+          <!--功能按键-->
+          <div class="func">
+            <div class="volume" :class="{sound: volSound}">
+              <div class="volume-wrapper" @mousedown="isVolClick" ref="volumeWrapper">
+                <div class="volProgressBar"></div>
+                <div class="volProgress" ref="volProgress">
+                  <div class="volSlider-point" @mousedown="volSlider" ref="volSlider"></div>
+                </div>
+              </div>
+            </div>
+            <div class="icon" @click="soundSwitch">+</div>
+            <div class="icon" @click="changeMode">-</div>
+            <div class="icon" @click="changeMode">-</div>
+            <div class="icon">%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -75,11 +82,13 @@ export default {
       index: 0, // 当前对应索引
       curIndex: '', // 改变后的索引
       len: 0, // 数据长度
+      id: '',
       url: '',
       title: '',
       author: '',
       timer: null,
       drag: false,
+      jump: false,//
       flag: true,
       songList: [],
       musicList: '',
@@ -89,13 +98,12 @@ export default {
       currentTime: '00:00',
       per: 0,
       volPer: 0.6, // 音量大小
-      volSound: false
+      volSound: false,
+      modeNum: 0 // 0 为顺序 1为单曲循环 2为乱序
     }
   },
   computed: {
-    // totalTime () {
-    //   return this.formatTime
-    // }
+
   },
   async mounted () {
     await this.init()
@@ -104,8 +112,8 @@ export default {
     this.$refs.volProgress.style.height = this.volPer * 100 + '%'
     this.$refs.volSlider.style.top = this.volPer * 100 + 'px' // 进度条的长度为100px
     this.timer = setInterval(() => {
-      // 当鼠标拖动时 停止给currentTime赋值
-      if (!this.drag) {
+      // 当鼠标拖动或点击时 停止给currentTime赋值
+      if (!this.jump || !this.drag) {
         this.currentTemp = this.audio.currentTime
         this.currentTime = this.formatTime(this.currentTemp)
         this.per = this.currentTemp / this.totalTemp
@@ -114,10 +122,11 @@ export default {
         this.audio.currentTime = this.currentTemp
       }
       if (this.audio.ended) {
-        console.log('ended')
         this.next()
       }
     }, 1000)
+
+    console.log(this.songList)
   },
   // 页面销毁清除定时器
   beforeDestroy () {
@@ -136,8 +145,9 @@ export default {
         this.len = this.musicList.length
         this.musicList.forEach(ele => {
           let obj = {
+            id: ele.id,
             title: ele.songname,
-            // pic:ele.musicImgSrc,
+            pic: ele.musicImgSrc,
             url: ele.url,
             author: ele.singername
           }
@@ -149,6 +159,7 @@ export default {
     },
     // 获取图文信息
     detailData () {
+      this.id = this.songList[this.index].id
       this.title = this.songList[this.index].title
       this.author = this.songList[this.index].author
       this.url = this.songList[this.index].url
@@ -163,17 +174,20 @@ export default {
       }
     },
     prev () {
-      this.getIndex(-1)
+      if (this.modeNum === 0 || this.modeNum === 1) {
+        this.getIndex(-1)
+      }
+      if (this.modeNum === 2) {
+        this.random()
+      }
     },
     next () {
-      this.getIndex(1)
-      // if (!this.currentTemp && this.status === 'pause') {
-      //   this.
-      // }
-    },
-    // 单曲播放
-    single () {
-      this.getIndex(0)
+      if (this.modeNum === 0 || this.modeNum === 1) {
+        this.getIndex(1)
+      }
+      if (this.modeNum === 2) {
+        this.random()
+      }
     },
     // 随机播放
     random () {
@@ -186,6 +200,9 @@ export default {
       this.curIndex = (this.index + this.len + val) % (this.len)
       this.index = this.curIndex
     },
+    // selectIndex (val) {
+    //   this.
+    // },
     // 时间转换格式
     formatTime (t) {
       t = Math.round(t)
@@ -230,6 +247,16 @@ export default {
       let newPer
       let slider = this.$refs.slider
       let disX = e.clientX - slider.offsetLeft
+      // 从未播放，拖动则加载歌曲资源
+      if (!this.currentTemp) {
+        this.audio.src = this.songList[this.curIndex].url
+        // 元数据加载完毕
+        this.audio.onloadedmetadata = () => {
+          this.totalTemp = this.audio.duration
+          this.totalTime = this.formatTime(this.totalTemp)
+        }
+      }
+
       document.onmousemove = (e) => {
         let left = e.clientX - disX
         newPer = left / 500
@@ -248,11 +275,10 @@ export default {
       document.onmouseup = (e) => {
         this.drag = false
         this.audio.currentTime = this.currentTemp
-        console.log('----' + this.per)
+        // console.log('----' + this.per)
         if (this.status === 'play') {
           this.audio.play()
           if (newPer === 1) {
-            console.log('ended')
             this.next()
           }
         }
@@ -269,7 +295,22 @@ export default {
       let location = e.layerX
       let width = timeWrapper.clientWidth
       this.per = location / width
-      this.audio.currentTime = this.per * this.totalTemp
+      this.jump = true
+      // 从未播放，点击进度则加载歌曲资源
+      if (!this.currentTemp) {
+        this.audio.src = this.songList[this.curIndex].url
+        // 元数据加载完毕
+        this.audio.onloadedmetadata = () => {
+          this.totalTemp = this.audio.duration
+          this.totalTime = this.formatTime(this.totalTemp)
+          this.currentTemp = this.per * this.totalTemp
+          this.currentTime = this.formatTime(this.currentTemp)
+          this.audio.currentTime = this.currentTemp
+        }
+      }
+      this.currentTemp = this.per * this.totalTemp
+      this.currentTime = this.formatTime(this.currentTemp)
+      this.audio.currentTime = this.currentTemp
       this.$refs.proTop.style.width = this.per * 100 + '%'
       this.$refs.slider.style.left = this.per * 500 + 'px'
     },
@@ -313,8 +354,28 @@ export default {
       this.$refs.volProgress.style.height = this.volPer * 100 + '%'
       this.$refs.volSlider.style.top = this.volPer * 100 + 'px'
     },
+    // 音量显示
     soundSwitch () {
       this.volSound = !this.volSound
+    },
+    // 改变播放模式
+    changeMode () {
+      this.modeNum += 1
+      if (this.modeNum > 2) {
+        this.modeNum = 0
+      }
+      if (this.modeNum === 1) {
+        this.audio.loop = 'loop'
+      } else {
+        this.audio.loop = ''
+      }
+      console.log(this.modeNum)
+    },
+    select (item) {
+      console.log(item)
+      // this.getIndex(item.id)
+      this.curIndex = item.id
+      this.index = item.id
     }
   },
 
@@ -338,7 +399,7 @@ export default {
           this.audio.play()
         }
         if (this.status === 'pause') {
-          this.audio.currentTime = 0
+          this.audio.currentTime = 0 // 防定时器有值
           this.totalTime = '00:00'
           this.currentTime = '00:00'
           this.currentTemp = 0
@@ -351,7 +412,7 @@ export default {
         if (newVal === 'play') {
           // 当前歌曲播放过程中暂停后播放
           if (this.currentTemp) {
-            this.audio.currentTime = this.currentTemp
+            this.audio.currentTemp = this.currentTemp
             this.audio.play()
           } else {
             // 切换下一首歌
@@ -369,30 +430,17 @@ export default {
         }
       })
     }
-
-    // currentTemp () {
-    //   // 未播放currenTemp没值 暂停状态下
-    //   if (!this.currentTemp && this.status === 'pause') {
-    //     this.audio.src = this.songList[this.curIndex].url
-    //     // 元数据加载完毕
-    //     this.audio.onloadedmetadata = () => {
-    //       this.totalTemp = this.audio.duration
-    //       this.totalTime = this.formatTime(this.totalTemp)
-    //     }
-    //     if (this.currentTemp && this.status === 'pause') {
-    //       this.totalTime = '00:00'
-    //       this.currentTime = '00:00'
-    //       console.log('000')
-    //     }
-    //   }
-    // }
   }
 }
 </script>
 
 <style scoped>
-  .wrapper{
+  .songList{
+    width: 400px;
+    height: 200px;
     border: 1px solid black;
+  }
+  .outer{
     position: fixed;
     zoom: 1;
     bottom: 0;
@@ -401,6 +449,14 @@ export default {
     height: 0;
     width: 100%;
     z-index: 1002;
+  }
+  .songList{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 500px;
+    height: 200px;
+    border: 1px solid red
   }
   .wrap{
     position: absolute;
@@ -426,6 +482,7 @@ export default {
     padding: 6px 0 0 0;
   }
 .btn-wrapper {
+  cursor: pointer;
   border-radius: 50%;
   display: block;
   float: left;
@@ -553,6 +610,7 @@ export default {
     border: 1px solid black;
   }
   .icon{
+    cursor: pointer;
     float: left;
     width: 25px;
     height: 25px;
