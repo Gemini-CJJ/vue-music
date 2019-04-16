@@ -19,16 +19,14 @@
           <!--播放控件-->
           <div class="btns">
             <div class="btn-wrapper prev-btn" @click="prev"></div>
-            <div class="btn-wrapper play-btn" @click="play"></div>
+            <div class="btn-wrappe"
+                 :class="status === 'pause'? 'play-btn' : 'pause-btn'"
+                 @click="play"></div>
             <div class="btn-wrapper next-btn" @click="next"></div>
           </div>
           <!--音乐海报-->
           <div class="song-img">
-            <div class="">
-              <div class="img-wrapper">
-                <img src="" alt="">
-              </div>
-            </div>
+                <img class= "img-wrapper" :src="img" alt="">
           </div>
           <!--进度条-->
           <div class="pro">
@@ -56,10 +54,11 @@
                 </div>
               </div>
             </div>
-            <div class="icon" @click="soundSwitch">+</div>
-            <div class="icon" @click="changeMode">-</div>
-            <div class="icon" @click="changeMode">-</div>
-            <div class="icon">%</div>
+            <div class="icon icon-vol" @click="soundSwitch"></div>
+            <div class="icon icon-loop"
+                 :class="mode"
+                 @click="changeMode"></div>
+<!--            <div class="icon">%</div>-->
           </div>
         </div>
       </div>
@@ -78,17 +77,19 @@ export default {
   data () {
     return {
       status: 'pause',
+      isPlay: true,
       audio: '',
       index: 0, // 当前对应索引
       curIndex: '', // 改变后的索引
       len: 0, // 数据长度
       id: '',
-      url: '',
       title: '',
+      img: '',
+      url: '',
       author: '',
       timer: null,
       drag: false,
-      jump: false,//
+      jump: false,
       flag: true,
       songList: [],
       musicList: '',
@@ -103,7 +104,17 @@ export default {
     }
   },
   computed: {
-
+    mode () {
+      if (this.modeNum === 0) {
+        return 'icon-loop'
+      }
+      if (this.modeNum === 1) {
+        return 'icon-one'
+      }
+      if (this.modeNum === 2) {
+        return 'icon-shuffle'
+      }
+    }
   },
   async mounted () {
     await this.init()
@@ -125,8 +136,6 @@ export default {
         this.next()
       }
     }, 1000)
-
-    console.log(this.songList)
   },
   // 页面销毁清除定时器
   beforeDestroy () {
@@ -147,7 +156,7 @@ export default {
           let obj = {
             id: ele.id,
             title: ele.songname,
-            pic: ele.musicImgSrc,
+            img: ele.img,
             url: ele.url,
             author: ele.singername
           }
@@ -162,6 +171,7 @@ export default {
       this.id = this.songList[this.index].id
       this.title = this.songList[this.index].title
       this.author = this.songList[this.index].author
+      this.img = this.songList[this.index].img
       this.url = this.songList[this.index].url
       this.currentTemp = 0
       this.currentTime = this.formatTime(this.currentTime)
@@ -172,6 +182,7 @@ export default {
       } else {
         this.status = 'pause'
       }
+      this.isPlay = !this.isPlay
     },
     prev () {
       if (this.modeNum === 0 || this.modeNum === 1) {
@@ -369,7 +380,6 @@ export default {
       } else {
         this.audio.loop = ''
       }
-      console.log(this.modeNum)
     },
     select (item) {
       console.log(item)
@@ -479,51 +489,71 @@ export default {
   .btns{
     float: left;
     width: 137px;
-    padding: 6px 0 0 0;
+    padding: 10px 0 0 0;
   }
 .btn-wrapper {
   cursor: pointer;
   border-radius: 50%;
   display: block;
   float: left;
+  background-image: url("../assets/images/playbar.png");
+  background-repeat: no-repeat;
 }
   .prev-btn{
-    background-size: 10%;
-    width: 25px;
-    height: 25px;
+    width: 28px;
+    height: 28px;
     margin-right: 8px;
     margin-top: 5px;
-    border: 2px solid #aaa;
-    background: url("../assets/images/playbar.png") no-repeat;
-    background-size: 100% 100%;
-    background-position: 20px 120px;
+    background-position: 0px -130px;
+  }
+  .prev-btn:hover{
+    background-position: -30px -130px;
   }
   .play-btn{
-    width: 32px;
-    height: 32px;
+    float: left;
+    display: block;
+    width: 36px;
+    height: 36px;
     margin-right: 8px;
-    border: 2px solid #fff;
-    background: url("../assets/images/playbar.png") no-repeat;
+    background-image: url("../assets/images/playbar.png");
+    background-repeat: no-repeat;
+    background-position: 0 -204px;
+  }
+  .pause-btn{
+    float: left;
+    width: 36px;
+    height: 36px;
+    margin-right: 8px;
+    background-image: url("../assets/images/playbar.png");
+    background-repeat: no-repeat;
+    background-position: -40px -165px
   }
   .next-btn{
-    background-size: 10%;
-    width: 25px;
-    height: 25px;
+    display: block;
+    width: 28px;
+    height: 28px;
     margin-right: 8px;
     margin-top: 5px;
-    border: 2px solid #aaa;
-    background: url("../assets/images/playbar.png") no-repeat;
+    background-position: -80px -130px;
+  }
+  .next-btn:hover{
+    background-position: -110px -130px;
   }
   .playing{
-    background: url("../assets/images/playbar.png") no-repeat;
+    background-position: -40px -165px;
   }
 /*  !*图片展示*!*/
   .song-img{
     margin: 6px 15px 0 0;
-    border: 1px solid black;
     width: 34px;
     height: 34px;
     float: left;
+  }
+  .img-wrapper{
+    overflow: hidden;
+    border-radius: 4px;
+    width: 100%;
+    heith: 100%
   }
   /*进度条*/
   .pro{
@@ -531,7 +561,6 @@ export default {
     position: relative;
     width: 608px;
     float: left;
-    /*background: #232325;*/
   }
 
   .song-info{
@@ -607,16 +636,42 @@ export default {
     width: 113px;
     padding-left: 13px;
     float: left;
-    border: 1px solid black;
+    padding-top: 7px;
   }
   .icon{
     cursor: pointer;
     float: left;
     width: 25px;
     height: 25px;
-    margin: 11px 2px 0 0;
-    border: 1px solid black;
+    margin: 11px 10px 0 0;
+    background-image: url("../assets/images/playbar.png");
+    background-repeat: no-repeat;
   }
+  .icon-vol{
+    background-position: -2px -248px
+  }
+  .icon-vol:hover{
+    background-position: -31px -248px;
+  }
+  .icon-loop{
+    background-position: -3px -344px;
+  }
+  .icon-loop:hover{
+    background-position: -33px -344px;
+  }
+  .icon-one{
+    background-position: -66px -344px;
+  }
+  .icon-one:hover{
+    background-position: -93px -344px;
+  }
+  .icon-shuffle{
+    background-position: -66px -248px;
+  }
+  .icon-shuffle:hover{
+    background-position: -93px -248px;
+  }
+
   .volume{
     visibility: hidden;
     display: flex;
