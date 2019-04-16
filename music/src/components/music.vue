@@ -81,7 +81,7 @@ export default {
     return {
       status: 'pause',
       isPlay: true,
-      isLock: false,
+      isLock: true,
       volSound: false,
       timer: null,
       drag: false,
@@ -625,6 +625,7 @@ export default {
   .album-name{
     display: inline-block;
     margin-left: 30px;
+    color: #9b9b9b;
   }
   .time{
     float: left;
@@ -648,7 +649,7 @@ export default {
     margin-right: 15px;
     position: absolute;
     top: 50%;
-    background: #333333;
+    background: #444;
     transform: translateY(-50%);
     border-radius: 3px;
   }
