@@ -9,7 +9,11 @@
       </div>
     </div>
     <div class="outer">
-      <div class="wrap">
+      <div class="wrap" :class="{'wrap-hidn': !isLock}">
+        <div class="lock-wrap" >
+          <div :class="isLock ? 'lock':'unlock'" @click="changeLock"></div>
+        </div>
+        <div class="hand" title="展开播放条"></div>
         <div class="player-wrap">
           <video muted="false" hidden="hidden">
             <audio v-if="flag"
@@ -58,7 +62,6 @@
             <div class="icon icon-loop"
                  :class="mode"
                  @click="changeMode"></div>
-<!--            <div class="icon">%</div>-->
           </div>
         </div>
       </div>
@@ -78,6 +81,12 @@ export default {
     return {
       status: 'pause',
       isPlay: true,
+      isLock: false,
+      volSound: false,
+      timer: null,
+      drag: false,
+      jump: false,
+      flag: true,
       audio: '',
       index: 0, // 当前对应索引
       curIndex: '', // 改变后的索引
@@ -87,10 +96,6 @@ export default {
       img: '',
       url: '',
       author: '',
-      timer: null,
-      drag: false,
-      jump: false,
-      flag: true,
       songList: [],
       musicList: '',
       currentTemp: '',
@@ -99,7 +104,6 @@ export default {
       currentTime: '00:00',
       per: 0,
       volPer: 0.6, // 音量大小
-      volSound: false,
       modeNum: 0 // 0 为顺序 1为单曲循环 2为乱序
     }
   },
@@ -164,7 +168,7 @@ export default {
         })
         // 因为是异步请求，所以一开始播放器中是没有歌曲的，所有给了个v-if不然会插件默认会先生成播放器，导致报错
         this.flag = true
-      };
+      }
     },
     // 获取图文信息
     detailData () {
@@ -175,6 +179,9 @@ export default {
       this.url = this.songList[this.index].url
       this.currentTemp = 0
       this.currentTime = this.formatTime(this.currentTime)
+    },
+    changeLock () {
+      this.isLock = !this.isLock
     },
     play () {
       if (this.status === 'pause') {
@@ -211,9 +218,6 @@ export default {
       this.curIndex = (this.index + this.len + val) % (this.len)
       this.index = this.curIndex
     },
-    // selectIndex (val) {
-    //   this.
-    // },
     // 时间转换格式
     formatTime (t) {
       t = Math.round(t)
@@ -388,7 +392,6 @@ export default {
       this.index = item.id
     }
   },
-
   watch: {
     // 监听当前索引值的变化
     curIndex (newVal) {
@@ -450,6 +453,45 @@ export default {
     height: 200px;
     border: 1px solid black;
   }
+  .hand{
+    position: absolute;
+    top: -20px;
+    width: 100%;
+    height: 20px;
+    cursor: pointer;
+  }
+  .lock-wrap{
+    position: absolute;
+    top: -14px;
+    right: 15px;
+    width: 52px;
+    height: 67px;
+    background-image: url("../assets/images/playbar.png");
+    background-repeat: no-repeat;
+    background-position: 0 -380px;
+  }
+  .lock{
+    width: 18px;
+    height: 18px;
+    margin: 6px 0 0 17px;
+    background-image: url("../assets/images/playbar.png");
+    background-repeat: no-repeat;
+    background-position: -100px -380px;
+  }
+  .lock:hover{
+    background-position: -100px -400px
+  }
+  .unlock{
+    width: 18px;
+    height: 18px;
+    margin: 6px 0 0 17px;
+    background-image: url("../assets/images/playbar.png");
+    background-repeat: no-repeat;
+    background-position: -80px -380px;
+  }
+  .unlock:hover{
+    background-position: -80px -400px;
+  }
   .outer{
     position: fixed;
     zoom: 1;
@@ -470,14 +512,24 @@ export default {
   }
   .wrap{
     position: absolute;
-    zoom: 1;
     top: -53px;
     left: 0;
     width: 100%;
     height: 53px;
     margin: 0 auto;
     color: #fff;
-    background: rgba(0,0,0,.7);
+    background-image: url(../assets/images/playbar.png);
+  }
+  .wrap-hidn{
+    top: -7px;
+  }
+  .wrap-hidn:hover{
+    top: -53px;
+    animation: show 0.5s ease;
+  }
+  @keyframes show {
+    from {top :-7px}
+    to{top: -53px}
   }
   .player-wrap{
     z-index: 15;
@@ -544,7 +596,7 @@ export default {
   }
 /*  !*图片展示*!*/
   .song-img{
-    margin: 6px 15px 0 0;
+    margin: 13px 15px 0 0;
     width: 34px;
     height: 34px;
     float: left;
@@ -557,6 +609,7 @@ export default {
   }
   /*进度条*/
   .pro{
+    margin-top: 5px;
     font-size: 12px;
     position: relative;
     width: 608px;
