@@ -15,18 +15,19 @@
         </div>
         <div class="hand" title="展开播放条"></div>
         <div class="player-wrap">
-          <video muted="false" hidden="hidden">
+<!--          <video muted="false" hidden="hidden">-->
             <audio v-if="flag"
                    ref="player"
-                   src=""></audio>
-          </video>
+                   src=""
+                   preload="auto"></audio>
+<!--          </video>-->
           <!--播放控件-->
           <div class="btns">
-            <div class="btn-wrapper prev-btn" @click="prev"></div>
+            <div class="btn-wrapper prev-btn" @click="mPrev"></div>
             <div class="btn-wrappe"
                  :class="status === 'pause'? 'play-btn' : 'pause-btn'"
                  @click="play"></div>
-            <div class="btn-wrapper next-btn" @click="next"></div>
+            <div class="btn-wrapper next-btn" @click="mNext"></div>
           </div>
           <!--音乐海报-->
           <div class="song-img">
@@ -128,16 +129,17 @@ export default {
     this.$refs.volSlider.style.top = this.volPer * 100 + 'px' // 进度条的长度为100px
     this.timer = setInterval(() => {
       // 当鼠标拖动或点击时 停止给currentTime赋值
-      if (!this.jump || !this.drag) {
+      if (!this.drag) {
+        console.log('11111')
         this.currentTemp = this.audio.currentTime
         this.currentTime = this.formatTime(this.currentTemp)
         this.per = this.currentTemp / this.totalTemp
         this.$refs.proTop.style.width = this.per * 100 + '%'
         this.$refs.slider.style.left = this.per * 500 + 'px' // 进度条的长度为500px
-        this.audio.currentTime = this.currentTemp
+        // this.audio.currentTime = this.currentTemp
       }
       if (this.audio.ended) {
-        this.next()
+        this.mNext()
       }
     }, 1000)
   },
@@ -191,7 +193,7 @@ export default {
       }
       this.isPlay = !this.isPlay
     },
-    prev () {
+    mPrev () {
       if (this.modeNum === 0 || this.modeNum === 1) {
         this.getIndex(-1)
       }
@@ -199,7 +201,7 @@ export default {
         this.random()
       }
     },
-    next () {
+    mNext () {
       if (this.modeNum === 0 || this.modeNum === 1) {
         this.getIndex(1)
       }
@@ -453,6 +455,25 @@ export default {
     height: 200px;
     border: 1px solid black;
   }
+  .songList{
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 500px;
+    height: 200px;
+    border: 1px solid red
+  }
+
+  .outer{
+    position: fixed;
+    zoom: 1;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    width: 100%;
+    z-index: 1002;
+  }
   .hand{
     position: absolute;
     top: -20px;
@@ -492,24 +513,7 @@ export default {
   .unlock:hover{
     background-position: -80px -400px;
   }
-  .outer{
-    position: fixed;
-    zoom: 1;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 0;
-    width: 100%;
-    z-index: 1002;
-  }
-  .songList{
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 500px;
-    height: 200px;
-    border: 1px solid red
-  }
+   /*播放器内容*/
   .wrap{
     position: absolute;
     top: -53px;
@@ -615,7 +619,6 @@ export default {
     width: 608px;
     float: left;
   }
-
   .song-info{
     float: left;
     height: 28px;
@@ -653,7 +656,6 @@ export default {
     transform: translateY(-50%);
     border-radius: 3px;
   }
-
   .pro-top{
     position: absolute;
     top: 50%;
@@ -725,7 +727,6 @@ export default {
   .icon-shuffle:hover{
     background-position: -93px -248px;
   }
-
   .volume{
     visibility: hidden;
     display: flex;
